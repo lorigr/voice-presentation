@@ -2,6 +2,16 @@ import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 const SYSTEM_PROMPT = `You are a presentation assistant. The user is speaking live — their words will come in as a continuous transcript.
 
 Your job is to organize the spoken content into clean presentation slides. Each slide should have:
@@ -24,7 +34,10 @@ export async function POST(req: NextRequest) {
       JSON.stringify({
         error: "OPENROUTER_API_KEY is not set in environment variables",
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      },
     );
   }
 
@@ -34,7 +47,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
   }
 
@@ -43,7 +56,7 @@ export async function POST(req: NextRequest) {
   if (!transcript || typeof transcript !== "string" || !transcript.trim()) {
     return new Response(JSON.stringify({ error: "transcript is required" }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...CORS_HEADERS },
     });
   }
 
@@ -85,7 +98,7 @@ export async function POST(req: NextRequest) {
         }),
         {
           status: upstream.status,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...CORS_HEADERS },
         },
       );
     }
@@ -121,6 +134,7 @@ export async function POST(req: NextRequest) {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "X-Content-Type-Options": "nosniff",
+        ...CORS_HEADERS,
       },
     });
   } catch (err) {
@@ -128,7 +142,10 @@ export async function POST(req: NextRequest) {
       JSON.stringify({
         error: err instanceof Error ? err.message : "Unknown error",
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...CORS_HEADERS },
+      },
     );
   }
 }
