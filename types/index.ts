@@ -19,4 +19,4 @@ export const MODELS = [
   { label: "Custom", value: "custom" },
 ] as const;
 
-export const DEFAULT_MODEL = "google/gemini-flash-1.5";
+export const DEFAULT_MODEL = "openai/gpt-4o-mini";
