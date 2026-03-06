@@ -3,12 +3,15 @@
  *
  * Handles:
  * - Load / save config (apiBaseUrl, model, language) in chrome.storage.sync
+ * - Tab indicator: shows the currently active tab (what will be captured)
  * - START / STOP / RESET messages to background
  * - Status display reflecting extensionState from chrome.storage.local
  * - Opening the slide window (chrome.windows.create)
  */
 
 const dot = document.getElementById("dot") as HTMLElement;
+const tabDot = document.getElementById("tabDot") as HTMLElement;
+const tabLabel = document.getElementById("tabLabel") as HTMLElement;
 const toggleBtn = document.getElementById("toggleBtn") as HTMLButtonElement;
 const resetBtn = document.getElementById("resetBtn") as HTMLButtonElement;
 const slideWindowBtn = document.getElementById("slideWindowBtn") as HTMLButtonElement;
@@ -36,6 +39,41 @@ chrome.storage.sync.get(
 chrome.runtime.sendMessage({ type: "GET_STATE" }, (state) => {
   if (state) applyState(state);
 });
+
+// ── Tab indicator ─────────────────────────────────────────────────────────────
+
+// When idle: show the active tab (what would be captured if Start is clicked)
+// When capturing: show the tab that is being captured (from state)
+function updateTabIndicator(opts: {
+  capturing: boolean;
+  capturedTitle?: string;
+}) {
+  if (opts.capturing && opts.capturedTitle) {
+    tabDot.className = "tab-indicator-dot active";
+    tabLabel.className = "tab-indicator-text active";
+    tabLabel.textContent = opts.capturedTitle;
+    tabLabel.title = opts.capturedTitle;
+  } else {
+    // Query the current active tab to show a preview
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (!tab) {
+        tabDot.className = "tab-indicator-dot";
+        tabLabel.className = "tab-indicator-text";
+        tabLabel.textContent = "No active tab";
+        tabLabel.title = "";
+        return;
+      }
+      const title = tab.title ?? tab.url ?? "Unknown tab";
+      tabDot.className = "tab-indicator-dot ready";
+      tabLabel.className = "tab-indicator-text";
+      tabLabel.textContent = title;
+      tabLabel.title = title;
+    });
+  }
+}
+
+// Run on popup open
+updateTabIndicator({ capturing: false });
 
 // ── Config change listeners ───────────────────────────────────────────────────
 
@@ -104,7 +142,6 @@ slideWindowBtn.addEventListener("click", () => {
   const base = apiBaseUrlInput.value.trim() || "http://localhost:3000";
   const url = `${base.replace(/\/$/, "")}/?mode=extension`;
 
-  // If already open, focus it
   if (slideWindowId !== null) {
     chrome.windows.update(slideWindowId, { focused: true }, (win) => {
       if (chrome.runtime.lastError || !win) {
@@ -125,7 +162,7 @@ function openSlideWindow(url: string) {
   );
 }
 
-// ── Storage listener (background pushes state updates via storage) ────────────
+// ── Storage listener (background pushes state updates) ───────────────────────
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.extensionState) {
@@ -139,8 +176,14 @@ function applyState(state: {
   isCapturing: boolean;
   isGenerating: boolean;
   error: string | null;
+  capturedTabTitle?: string;
 }) {
   isCapturing = state.isCapturing;
+
+  updateTabIndicator({
+    capturing: state.isCapturing,
+    capturedTitle: state.capturedTabTitle,
+  });
 
   if (state.error) {
     setStatus("error", state.error);
@@ -163,6 +206,7 @@ function setStatus(status: Status, message?: string) {
   switch (status) {
     case "idle":
       toggleBtn.textContent = "Start";
+      updateTabIndicator({ capturing: false });
       break;
     case "starting":
       dot.classList.add("working");

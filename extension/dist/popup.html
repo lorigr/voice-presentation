@@ -148,6 +148,39 @@
         min-height: 16px;
       }
       #status-text.error-text { color: #f87171; }
+
+      .tab-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 6px 8px;
+        margin-bottom: 14px;
+        min-height: 30px;
+      }
+
+      .tab-indicator-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #475569;
+        flex-shrink: 0;
+      }
+
+      .tab-indicator-dot.ready { background: #6366f1; }
+      .tab-indicator-dot.active { background: #22c55e; }
+
+      .tab-indicator-text {
+        font-size: 11px;
+        color: #94a3b8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .tab-indicator-text.active { color: #e2e8f0; }
     </style>
   </head>
   <body>
@@ -155,6 +188,12 @@
       <span class="status-dot" id="dot"></span>
       Voice Presentation
     </h1>
+
+    <!-- Shows which tab will be / is being captured -->
+    <div class="tab-indicator" id="tabIndicator">
+      <span class="tab-indicator-dot" id="tabDot"></span>
+      <span class="tab-indicator-text" id="tabLabel">Loading…</span>
+    </div>
 
     <div class="field">
       <label>API Base URL</label>

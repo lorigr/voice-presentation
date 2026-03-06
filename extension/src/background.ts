@@ -3,11 +3,12 @@
  *
  * Responsibilities:
  * 1. Receive START/STOP/RESET from popup
- * 2. Get tabCapture stream ID and hand it to the offscreen document
- * 3. Receive transcript chunks from the offscreen document
- * 4. Debounce, call /api/generate, stream + parse slides
- * 5. Push { slides, streamingSlide, isGenerating, error } to connected ports
- *    (the slide-window page that opened /?mode=extension)
+ * 2. Capture audio from whatever tab is currently active
+ * 3. Hand the stream ID to the offscreen document
+ * 4. Receive transcript chunks from the offscreen document
+ * 5. Debounce, call /api/generate, stream + parse slides
+ * 6. Push { slides, streamingSlide, isGenerating, error } to connected ports
+ *    (the slide-window page opened at /?mode=extension)
  */
 
 import { parseCompleteSlides, parseStreamingSlide } from "./slideParser";
@@ -27,6 +28,8 @@ interface ExtensionState {
   isGenerating: boolean;
   error: string | null;
   isCapturing: boolean;
+  capturedTabTitle: string;
+  capturedTabUrl: string;
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -37,6 +40,8 @@ let state: ExtensionState = {
   isGenerating: false,
   error: null,
   isCapturing: false,
+  capturedTabTitle: "",
+  capturedTabUrl: "",
 };
 
 // Connected ports (slide windows listening for state)
@@ -58,7 +63,6 @@ let requestId = 0;
 function setState(patch: Partial<ExtensionState>) {
   state = { ...state, ...patch };
   broadcast({ type: "STATE_UPDATE", payload: state });
-  // Also persist capturing state for popup badge
   chrome.storage.local.set({ extensionState: state });
 }
 
@@ -184,12 +188,13 @@ function scheduleGeneration(isInterim: boolean) {
 
 // ── Tab capture & start ────────────────────────────────────────────────────────
 
-async function startCapture(tabId: number) {
+async function startCapture(tab: chrome.tabs.Tab) {
+  if (!tab.id) throw new Error("Tab has no id");
+
   await ensureOffscreenDocument();
 
-  // tabCapture.getMediaStreamId must be called from background (MV3)
   const streamId = await new Promise<string>((resolve, reject) => {
-    chrome.tabCapture.getMediaStreamId({ targetTabId: tabId }, (id) => {
+    chrome.tabCapture.getMediaStreamId({ targetTabId: tab.id }, (id) => {
       if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
       else resolve(id);
     });
@@ -203,14 +208,25 @@ async function startCapture(tabId: number) {
     language: config.language,
   });
 
-  setState({ isCapturing: true, error: null });
+  setState({
+    isCapturing: true,
+    error: null,
+    capturedTabTitle: tab.title ?? tab.url ?? "Unknown tab",
+    capturedTabUrl: tab.url ?? "",
+  });
 }
 
 async function stopCapture() {
   if (debounceTimer) clearTimeout(debounceTimer);
   chrome.runtime.sendMessage({ type: "STOP_CAPTURE" });
   await closeOffscreenDocument();
-  setState({ isCapturing: false, isGenerating: false, streamingSlide: null });
+  setState({
+    isCapturing: false,
+    isGenerating: false,
+    streamingSlide: null,
+    capturedTabTitle: "",
+    capturedTabUrl: "",
+  });
 }
 
 function resetState() {
@@ -233,13 +249,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "START") {
     (async () => {
       try {
-        // Find the active Meet tab
+        // Capture whatever tab is currently active in the focused window
         const [tab] = await chrome.tabs.query({
           active: true,
           currentWindow: true,
         });
         if (!tab?.id) throw new Error("No active tab found");
-        await startCapture(tab.id);
+        await startCapture(tab);
         sendResponse({ ok: true });
       } catch (err) {
         const message = err instanceof Error ? err.message : "Start failed";

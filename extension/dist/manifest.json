@@ -1,19 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Voice Presentation for Google Meet",
+  "name": "Voice Presentation",
   "version": "1.0.0",
-  "description": "Captures Google Meet audio, transcribes speech, and generates live presentation slides.",
+  "description": "Captures audio from any browser tab, transcribes speech in real time, and generates live presentation slides.",
 
   "permissions": [
     "tabCapture",
     "offscreen",
     "storage",
     "activeTab",
-    "scripting"
-  ],
-
-  "host_permissions": [
-    "https://meet.google.com/*"
+    "tabs"
   ],
 
   "background": {
@@ -29,14 +25,6 @@
       "128": "icons/icon128.png"
     }
   },
-
-  "content_scripts": [
-    {
-      "matches": ["https://meet.google.com/*"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ],
 
   "icons": {
     "16": "icons/icon16.png",
