@@ -221,8 +221,8 @@ export function Presentation({
           </div>
         )}
 
-        {/* Full-screen slide card — only shown when NOT streaming */}
-        {slide && !isStreaming && (
+        {/* Full-screen slide card — shown when not streaming or when streaming hasn't produced content yet */}
+        {slide && (!isStreaming || !streamingSlide) && (
           <div className="w-full max-w-2xl flex flex-col gap-6">
             <div className="relative rounded-2xl bg-gray-900/90 border border-gray-800/80 overflow-hidden shadow-2xl">
               {/* Top gradient bar */}

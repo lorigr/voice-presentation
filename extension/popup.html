@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Presentation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #030712;
+      color: #f9fafb;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .header-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .header-text h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f9fafb;
+      line-height: 1.2;
+    }
+
+    .header-text p {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Status badge */
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #374151;
+      flex-shrink: 0;
+    }
+
+    .status-dot.active {
+      background: #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-text { color: #9ca3af; }
+    .status-text.active { color: #fca5a5; }
+
+    /* Slides tab row */
+    .slides-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .slides-label {
+      font-size: 11px;
+      color: #6b7280;
+      flex-shrink: 0;
+    }
+
+    .slides-info {
+      font-size: 11px;
+      color: #4b5563;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+      flex: 1;
+      text-align: right;
+    }
+
+    .open-btn {
+      font-size: 11px;
+      color: #818cf8;
+      background: none;
+      border: 1px solid #312e81;
+      border-radius: 6px;
+      padding: 3px 8px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .open-btn:hover { background: #1e1b4b; color: #a5b4fc; }
+
+    /* Main capture button */
+    .capture-btn {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+
+    .capture-btn.start {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+
+    .capture-btn.start:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .capture-btn.stop {
+      background: #1f2937;
+      color: #f87171;
+      border: 1px solid #374151;
+    }
+
+    .capture-btn.stop:hover { background: #374151; }
+
+    .capture-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Reset button */
+    .reset-btn {
+      width: 100%;
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: 1px solid #1f2937;
+      background: none;
+      font-size: 12px;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .reset-btn:hover { background: #111827; color: #9ca3af; }
+
+    /* Error */
+    .error {
+      font-size: 11px;
+      color: #f87171;
+      background: #1c0a0a;
+      border: 1px solid #7f1d1d;
+      padding: 8px 10px;
+      border-radius: 8px;
+      line-height: 1.4;
+    }
+
+    /* Settings section */
+    .settings-section {
+      border: 1px solid #1f2937;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .settings-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #111827;
+      border: none;
+      color: #9ca3af;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .settings-toggle:hover { background: #1f2937; }
+
+    .settings-toggle-arrow {
+      font-size: 9px;
+      transition: transform 0.15s;
+    }
+
+    .settings-toggle-arrow.open { transform: rotate(180deg); }
+
+    .settings-body {
+      padding: 10px 12px;
+      background: #0d1117;
+      border-top: 1px solid #1f2937;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .settings-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .settings-label {
+      font-size: 10px;
+      color: #6b7280;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .settings-select,
+    .settings-input {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      color: #e5e7eb;
+      font-size: 12px;
+      padding: 5px 8px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .settings-select:focus,
+    .settings-input:focus { border-color: #6366f1; }
+
+    .settings-input::placeholder { color: #4b5563; }
+
+    .settings-save-btn {
+      align-self: flex-end;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #6366f1;
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .settings-save-btn:hover { opacity: 0.85; }
+
+    .settings-saved {
+      font-size: 10px;
+      color: #34d399;
+      align-self: flex-end;
+      display: none;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 10px 16px;
+      border-top: 1px solid #1f2937;
+      font-size: 10px;
+      color: #374151;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-icon">🎙</div>
+    <div class="header-text">
+      <h1>Voice Presentation</h1>
+      <p>Tab audio → live slides</p>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- Capture status -->
+    <div class="status">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-text" id="statusText">Not capturing</span>
+    </div>
+
+    <!-- Slides tab -->
+    <div class="slides-row">
+      <span class="slides-label">Slides tab:</span>
+      <span class="slides-info" id="slidesTabInfo">Not opened</span>
+      <button class="open-btn" id="openSlidesBtn">Open</button>
+    </div>
+
+    <!-- Error area -->
+    <div class="error" id="errorBox" style="display:none"></div>
+
+    <!-- Main action button -->
+    <button class="capture-btn start" id="captureBtn">
+      <span id="captureBtnIcon">▶</span>
+      <span id="captureBtnLabel">Start Capture</span>
+    </button>
+
+    <!-- Reset -->
+    <button class="reset-btn" id="resetBtn">Clear slides</button>
+
+    <!-- Settings -->
+    <div class="settings-section">
+      <button class="settings-toggle" id="settingsToggle">
+        <span>Settings</span>
+        <span class="settings-toggle-arrow" id="settingsArrow">▼</span>
+      </button>
+      <div class="settings-body" id="settingsBody" style="display:none">
+        <!-- Language -->
+        <div class="settings-row">
+          <label class="settings-label" for="languageSelect">Transcription Language</label>
+          <select class="settings-select" id="languageSelect">
+            <option value="">Auto-detect</option>
+            <option value="en">English</option>
+            <option value="it">Italian</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="pt">Portuguese</option>
+            <option value="ja">Japanese</option>
+            <option value="zh">Chinese</option>
+          </select>
+        </div>
+        <!-- Endpoint -->
+        <div class="settings-row">
+          <label class="settings-label" for="endpointInput">App Endpoint</label>
+          <input
+            type="text"
+            class="settings-input"
+            id="endpointInput"
+            placeholder="http://localhost:3000"
+          />
+        </div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+          <span class="settings-saved" id="settingsSaved">Saved!</span>
+          <button class="settings-save-btn" id="saveSettingsBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer" id="footerText">
+    Endpoint: localhost:3000 · Next.js app required
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
